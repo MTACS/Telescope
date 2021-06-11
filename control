@@ -1,0 +1,9 @@
+Package: com.mtac.telescope
+Name: Telescope
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: iOS 15 Photo information for iOS 14
+Maintainer: MTAC
+Author: MTAC
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000)
