@@ -46,7 +46,7 @@ UIViewController *infoPopoverController;
 
 %hook PXNavigationTitleView
 %property (strong, nonatomic) UIButton *info;
-- (void)layoutSubviews {
+- (void)layoutSubviews { // Not ideal, but no other usual method seemed to work
     %orig;
     if (!self.info) {
         self.info = [[UIButton alloc] initWithFrame:self.bounds];
