@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import "spawn.h"
 #define WIDTH [UIScreen mainScreen].bounds.size.width
 #define HEIGHT [UIScreen mainScreen].bounds.size.height
 
@@ -48,6 +49,7 @@ UIViewController *infoPopoverController;
 - (id)_viewControllerForAncestor;
 @end
 
+%group Tweak
 %hook PXNavigationTitleView
 %property (strong, nonatomic) UIButton *info;
 - (void)layoutSubviews { // Not ideal, but no other usual method seemed to work
@@ -80,14 +82,14 @@ UIViewController *infoPopoverController;
     
         infoPopoverController = [[UIViewController alloc] init];
         infoPopoverController.modalPresentationStyle = UIModalPresentationPopover;
-        infoPopoverController.preferredContentSize = CGSizeMake(300, 400);
+        infoPopoverController.preferredContentSize = CGSizeMake(340, 400);
 
         UILabel *infoLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 10, 150, 60)];
         infoLabel.font = [UIFont boldSystemFontOfSize:30];
         infoLabel.text = @"Info";
         [infoPopoverController.view addSubview:infoLabel];
 
-        UIButton *closeButton = [[UIButton alloc] initWithFrame:CGRectMake(235, 0, 80, 80)];
+        UIButton *closeButton = [[UIButton alloc] initWithFrame:CGRectMake(275, 0, 80, 80)];
         [closeButton setImage:[UIImage systemImageNamed:@"xmark.circle.fill"] forState:UIControlStateNormal];
         [closeButton setTintColor:[UIColor secondaryLabelColor]];
         [closeButton addTarget:self action:@selector(closeView) forControlEvents:UIControlEventTouchUpInside];
@@ -95,18 +97,32 @@ UIViewController *infoPopoverController;
 
         NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 		[formatter setDateFormat:@"EEEE • MMM dd, YYYY • h:mm a"];
-        UILabel *dateLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 60, 270, 40)];
+        UILabel *dateLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 60, 310, 40)];
         dateLabel.font = [UIFont systemFontOfSize:18];
         dateLabel.text = [formatter stringFromDate:asset.creationDate];
         [infoPopoverController.view addSubview:dateLabel];
 
-        UILabel *fileName = [[UILabel alloc] initWithFrame:CGRectMake(15, 90, 270, 40)];
+        CGSize imageSize = [asset imageSize];
+        NSDictionary *attributes;
+        NSString *assetPath = [[[asset mainFileURL] absoluteString] stringByReplacingOccurrencesOfString:@"file://" withString:@""];
+        float byteRepresentation;
+        BOOL isDirectory;
+        if ([[NSFileManager defaultManager] fileExistsAtPath:assetPath isDirectory:&isDirectory]) {
+            attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:assetPath error:nil];
+            byteRepresentation = (float)[[attributes objectForKey:NSFileSize] longLongValue] / (1024 * 1024);
+        } else {
+            byteRepresentation = 0;
+        }
+
+        UILabel *fileName = [[UILabel alloc] initWithFrame:CGRectMake(15, 90, 310, 40)];
         fileName.font = [UIFont systemFontOfSize:18];
         fileName.textColor = [UIColor secondaryLabelColor];
-        fileName.text = [[[[asset mainFileURL] absoluteString] stringByReplacingOccurrencesOfString:@"file://" withString:@""] lastPathComponent];
+        fileName.text = [NSString stringWithFormat:@"%@ • %ix%i • %.02f MB", [[[[asset mainFileURL] absoluteString] stringByReplacingOccurrencesOfString:@"file://" withString:@""] lastPathComponent], (int)imageSize.width, (int)imageSize.height, byteRepresentation];
+        [fileName setMarqueeEnabled:YES];
+        [fileName setMarqueeRunning:YES];
         [infoPopoverController.view addSubview:fileName];
 
-        UILabel *modelLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 120, 270, 40)];
+        UILabel *modelLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 120, 310, 40)];
         modelLabel.font = [UIFont systemFontOfSize:18];
         NSString *make = [[properties objectForKey:@"{TIFF}"] objectForKey:@"Make"];
         NSString *model = [[properties objectForKey:@"{TIFF}"] objectForKey:@"Model"];
@@ -117,7 +133,7 @@ UIViewController *infoPopoverController;
         }
         [infoPopoverController.view addSubview:modelLabel];
 
-        UILabel *lensInfo = [[UILabel alloc] initWithFrame:CGRectMake(15, 150, 270, 40)];
+        UILabel *lensInfo = [[UILabel alloc] initWithFrame:CGRectMake(15, 150, 310, 40)];
         lensInfo.textColor = [UIColor secondaryLabelColor];
         [lensInfo setMarqueeEnabled:YES];
         [lensInfo setMarqueeRunning:YES];
@@ -129,14 +145,14 @@ UIViewController *infoPopoverController;
         }
         [infoPopoverController.view addSubview:lensInfo];
 
-        MKMapView *mapView = [[MKMapView alloc] initWithFrame:CGRectMake(15, 190, 270, 190)];
+        MKMapView *mapView = [[MKMapView alloc] initWithFrame:CGRectMake(15, 190, 310, 190)];
         mapView.showsUserLocation = YES;
         mapView.mapType = MKMapTypeStandard;
         mapView.delegate = self;
         mapView.layer.cornerRadius = 10;
         [infoPopoverController.view addSubview:mapView];
 
-        UIButton *addressButton = [[UIButton alloc] initWithFrame:CGRectMake(15, 375, 270, 40)];
+        UIButton *addressButton = [[UIButton alloc] initWithFrame:CGRectMake(15, 375, 310, 40)];
         [addressButton setTitleColor:[UIColor linkColor] forState:UIControlStateNormal];
         [addressButton addTarget:self action:@selector(openLink) forControlEvents:UIControlEventTouchUpInside];
 		[infoPopoverController.view addSubview:addressButton];
@@ -194,3 +210,9 @@ UIViewController *infoPopoverController;
     [(UIViewController *)[self _viewControllerForAncestor] dismissViewControllerAnimated:infoPopoverController completion:nil];
 }
 %end
+%end
+
+%ctor {
+    %init(Tweak);
+}
+
