@@ -1,5 +1,5 @@
 TARGET := iphone:clang:latest:13.0
-INSTALL_TARGET_PROCESSES = MobileSlideShow
+INSTALL_TARGET_PROCESSES = MobileSlideShow Camera
 ARCHS = arm64 arm64e
 SYSROOT = $(THEOS)/sdks/iPhoneOS14.2.sdk
 DEBUG = 1

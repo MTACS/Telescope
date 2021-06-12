@@ -44,6 +44,10 @@ UIViewController *infoPopoverController;
 - (BOOL)marqueeRunning;
 @end
 
+@interface UIView (Telescope)
+- (id)_viewControllerForAncestor;
+@end
+
 %hook PXNavigationTitleView
 %property (strong, nonatomic) UIButton *info;
 - (void)layoutSubviews { // Not ideal, but no other usual method seemed to work
@@ -52,7 +56,7 @@ UIViewController *infoPopoverController;
         self.info = [[UIButton alloc] initWithFrame:self.bounds];
         [self.info setImage:[UIImage systemImageNamed:@"info.circle"] forState:UIControlStateNormal];
         [self.info.imageView setContentMode:UIViewContentModeScaleAspectFit];
-        [self.info addTarget:self action:@selector(loadInfo:) forControlEvents:UIControlEventTouchUpInside];
+        [self.info addTarget:self action:@selector(loadInfo) forControlEvents:UIControlEventTouchUpInside];
         [self addSubview:self.info];
     }
 }
@@ -62,19 +66,18 @@ UIViewController *infoPopoverController;
 - (id)title {
     return nil;
 }
-- (void)viewWillDisappear:(BOOL)animated {
+- (void)viewDidDisappear{
     %orig;
-    [[[[UIApplication sharedApplication] keyWindow] rootViewController] dismissViewControllerAnimated:infoPopoverController completion:nil];
+    [(UIViewController *)[self _viewControllerForAncestor] dismissViewControllerAnimated:infoPopoverController completion:nil];
 }
 %new
-- (void)loadInfo:(id)sender {
+- (void)loadInfo {
     PHAsset *asset = [(PUOneUpViewController *)[(PUNavigationController *)[self performSelector:@selector(_viewControllerForAncestor)] _currentToolbarViewController] pu_debugCurrentAsset];
     if (asset) {
         TelescopeInfoViewController *controller = [[TelescopeInfoViewController alloc] init];
 
         NSDictionary *properties = [asset originalImageProperties];
-        NSLog(@"[+] TELESCOPE DEBUG: Property -> %@", [[properties objectForKey:@"{TIFF}"] objectForKey:@"Model"]);
-
+    
         infoPopoverController = [[UIViewController alloc] init];
         infoPopoverController.modalPresentationStyle = UIModalPresentationPopover;
         infoPopoverController.preferredContentSize = CGSizeMake(300, 400);
@@ -83,6 +86,12 @@ UIViewController *infoPopoverController;
         infoLabel.font = [UIFont boldSystemFontOfSize:30];
         infoLabel.text = @"Info";
         [infoPopoverController.view addSubview:infoLabel];
+
+        UIButton *closeButton = [[UIButton alloc] initWithFrame:CGRectMake(235, 0, 80, 80)];
+        [closeButton setImage:[UIImage systemImageNamed:@"xmark.circle.fill"] forState:UIControlStateNormal];
+        [closeButton setTintColor:[UIColor secondaryLabelColor]];
+        [closeButton addTarget:self action:@selector(closeView) forControlEvents:UIControlEventTouchUpInside];
+        [infoPopoverController.view addSubview:closeButton];
 
         NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 		[formatter setDateFormat:@"EEEE • MMM dd, YYYY • h:mm a"];
@@ -150,7 +159,8 @@ UIViewController *infoPopoverController;
         popover.sourceView = self;
         popover.sourceRect = self.bounds;
 
-        [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:infoPopoverController animated:YES completion:nil];
+        [(UIViewController *)[self _viewControllerForAncestor] presentViewController:infoPopoverController animated:YES completion:nil];
+        // [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:infoPopoverController animated:YES completion:nil];
     }
 }
 %new
@@ -178,5 +188,9 @@ UIViewController *infoPopoverController;
         NSString *address = [NSString stringWithFormat:@"http://maps.apple.com/?sll=%f,%f", asset.location.coordinate.latitude, asset.location.coordinate.longitude];
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:address] options:@{} completionHandler:nil];
     }
+}
+%new
+- (void)closeView {
+    [(UIViewController *)[self _viewControllerForAncestor] dismissViewControllerAnimated:infoPopoverController completion:nil];
 }
 %end
