@@ -7,7 +7,7 @@
 UIViewController *infoPopoverController;
 
 @interface PXNavigationTitleView: UIView <MKMapViewDelegate>
-@property (strong, nonatomic) UIButton *info;
+@property (strong, nonatomic) UITapGestureRecognizer *info;
 @end
 
 @interface PUOneUpViewController: UIViewController
@@ -49,28 +49,24 @@ UIViewController *infoPopoverController;
 - (id)_viewControllerForAncestor;
 @end
 
+@interface SBIconController: UIViewController
++ (id)sharedInstance;
+@end
+
 %group Tweak
 %hook PXNavigationTitleView
-%property (strong, nonatomic) UIButton *info;
+%property (strong, nonatomic) UITapGestureRecognizer *info;
 - (void)layoutSubviews { // Not ideal, but no other usual method seemed to work
     %orig;
     if (!self.info) {
-        self.info = [[UIButton alloc] initWithFrame:self.bounds];
-        [self.info setImage:[UIImage systemImageNamed:@"info.circle"] forState:UIControlStateNormal];
-        [self.info.imageView setContentMode:UIViewContentModeScaleAspectFit];
-        [self.info addTarget:self action:@selector(loadInfo) forControlEvents:UIControlEventTouchUpInside];
-        [self addSubview:self.info];
+        self.info = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(loadInfo)];
+		self.info.numberOfTapsRequired = 1;
+        [self addGestureRecognizer:self.info];
     }
 }
-- (id)subtitle {
-    return nil;
-}
-- (id)title {
-    return nil;
-}
-- (void)viewDidDisappear{
+- (void)viewWillDisappear:(BOOL)animated {
     %orig;
-    [(UIViewController *)[self _viewControllerForAncestor] dismissViewControllerAnimated:infoPopoverController completion:nil];
+    [[%c(SBIconController) sharedInstance] dismissViewControllerAnimated:infoPopoverController completion:nil];
 }
 %new
 - (void)loadInfo {
@@ -176,7 +172,6 @@ UIViewController *infoPopoverController;
         popover.sourceRect = self.bounds;
 
         [(UIViewController *)[self _viewControllerForAncestor] presentViewController:infoPopoverController animated:YES completion:nil];
-        // [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:infoPopoverController animated:YES completion:nil];
     }
 }
 %new
